@@ -11,7 +11,8 @@ class ColorReader:
         self.args_list = args
         base_dir = os.path.dirname(os.path.abspath(__file__))
         execute = os.path.join(base_dir, "bin", "spotread.exe")
-        self.instance = wexpect.spawn(execute, [self.args_list],
+        print(execute, self.args_list)
+        self.instance = wexpect.spawn(execute, self.args_list,
                                     env=os.environ.copy(), timeout=10)
         self.status = "init"
         s = ""
@@ -23,6 +24,7 @@ class ColorReader:
                 if ret:
                     s += ret
             except wexpect.EOF:
+                print(s)
                 raise RuntimeError("spotread exit unexpectedly")
             if time.time() - start > timeout:
                 raise TimeoutError("init ColorReader time out")

@@ -528,9 +528,12 @@ class HDRCalibrationUI:
         instrument_idx = self.instrument_desc.index(self.instrument_var.get())
         mode_idx = self.mode_desc.index(self.mode_var.get())
         args.append("-x")
-        args.extend(["-c", self.instrument_choose[instrument_idx]])
-        args.extend(["-y", self.mode_choose[mode_idx].split("|")[0]])
-        return " ".join(args)
+        print(instrument_idx, mode_idx)
+        if len(self.instrument_choose) > 0:
+            args.extend(["-c", self.instrument_choose[instrument_idx]])
+        if len(self.mode_choose) > 0:
+            args.extend(["-y", self.mode_choose[mode_idx].split("|")[0]])
+        return args
     
     def open_tools(self, tool_name):
         try:
@@ -538,7 +541,8 @@ class HDRCalibrationUI:
             if not os.path.isfile(script):
                 tk.messagebox.showerror(_("Error"), _("File not found: {}").format(script))
                 return
-            subprocess.Popen([sys.executable, script], cwd=os.path.dirname(script))
+            print([sys.executable, script], os.path.dirname(script))
+            subprocess.Popen([sys.executable, script], cwd=os.path.dirname(script), env=os.environ.copy())
         except Exception as e:
                 tk.messagebox.showerror(_("Error"), _("Failed to launch {}: {}").format(tool_name, e))
 
@@ -1027,6 +1031,19 @@ class HDRCalibrationUI:
         self.proc_color_write = ColorWriter()
         args = self.get_spotread_args()
         self.proc_color_reader = ColorReader(args)
+        if self.proc_color_reader.status == "need_calibration":
+            while 1:
+                msg = _("Spot read needs a calibration before continuing \nPlace the instrument on its reflective white reference then click OK.")
+                answer = tk.messagebox.askokcancel(_("need_calibration"), msg)
+                if answer:
+                    self.proc_color_reader.calibrate()
+                else:
+                    logging.info(_("User canceled calibration"))
+                    self.clean_color_rw_process()
+                    self.unfreeze_ui()
+                    return
+                if self.proc_color_reader.status != "need_calibration":
+                    break
         # Send command to the child process
         self.proc_color_write.write_rgb([800, 800, 800])
         msg = _("Move the white window to the target screen, resize it to fully cover the meter, place the meter on the window, then click OK.")
@@ -1469,6 +1486,18 @@ class HDRCalibrationUI:
         self.proc_color_write = ColorWriter()
         args = self.get_spotread_args()
         self.proc_color_reader = ColorReader(args)
+        if self.proc_color_reader.status == "need_calibration":
+            while 1:
+                msg = _("Spot read needs a calibration before continuing \nPlace the instrument on its reflective white reference then click OK.")
+                answer = tk.messagebox.askokcancel(_("need_calibration"), msg)
+                if answer:
+                    self.proc_color_reader.calibrate()
+                else:
+                    logging.info(_("User canceled calibration"))
+                    self.clean_color_rw_process()
+                    return
+                if self.proc_color_reader.status != "need_calibration":
+                    break
         self.proc_color_write.write_rgb([800, 800, 800])
         answer = tk.messagebox.askokcancel(
             _("Notice"),
@@ -1703,6 +1732,18 @@ class HDRCalibrationUI:
         self.proc_color_write = ColorWriter()
         args = self.get_spotread_args()
         self.proc_color_reader = ColorReader(args)
+        if self.proc_color_reader.status == "need_calibration":
+            while 1:
+                msg = _("Spot read needs a calibration before continuing \nPlace the instrument on its reflective white reference then click OK.")
+                answer = tk.messagebox.askokcancel(_("need_calibration"), msg)
+                if answer:
+                    self.proc_color_reader.calibrate()
+                else:
+                    logging.info(_("User canceled calibration"))
+                    self.clean_color_rw_process()
+                    return
+                if self.proc_color_reader.status != "need_calibration":
+                    break
 
         self.proc_color_write.write_rgb([800, 800, 800])
         answer = tk.messagebox.askokcancel(

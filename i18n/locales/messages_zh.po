@@ -55,11 +55,11 @@ msgstr "({}/{}) 测量 RGB：{} 结果：{}"
 #: app.py:1528
 #: app.py:1736
 msgid "({}/{}) Measure RGB: {} Target XYZ:{} Result: {}"
-msgstr "读取成功 XYZ：{:.4f},{:.4f},{:.4f} xy：{:.4f},{:.4f}"
+msgstr "({}/{}) 测量 RGB: {} 目标 XYZ:{} Result: {}"
 
 #: app.py:1433
 msgid "({}/{}) Output RGB: {} Measured XYZ: {} RGB: {}"
-msgstr "就绪"
+msgstr "({}/{}) 写入 RGB: {} 测得 XYZ: {} RGB: {}"
 
 #: tools/icc_rw_app.py:108
 msgid "3x3 Matrix:"
@@ -1062,7 +1062,7 @@ msgstr "正在写入 RGBW XYZ：\n {}\n {}\n {}\n {}"
 #: app.py:1146
 #: app.py:1199
 msgid "Writing max full-frame luminance {}, peak luminance {}, min luminance {}"
-msgstr "正在写入全帧亮度 {max}、峰值亮度 {peak}、最小亮度 {min}"
+msgstr "正在写入全帧亮度 {}、峰值亮度 {}、最小亮度 {}"
 
 #: tools/manual_measure_color_app.py:449
 #: tools/manual_measure_color_app.py:453

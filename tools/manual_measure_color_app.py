@@ -482,7 +482,7 @@ class ColorMeasureApp(tk.Tk):
             self._terminate_reader()
         if self.reader is None:
             # Note: color_rw.ColorReader expects the args object as a single param
-            args_str = self.args_var.get().strip()
+            args_str = self.args_var.get().strip().split()
             self.reader = ColorReader(args=args_str)
             if self.reader.status == "need_calibration":
                 while 1:
