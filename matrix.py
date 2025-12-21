@@ -23,6 +23,41 @@ def build_xyz_to_rgb_from_primaries(xy_R, xy_G, xy_B, xy_W):
     return np.linalg.inv(M_rgb2xyz)
 
 
+def calculate_bradford_matrix(xy_A, xy_B):
+    """
+    计算从白点 A 到白点 B 的 Bradford 色适应矩阵。
+    输入:
+        xy_A: 源白点 (x, y)
+        xy_B: 目标白点 (x, y)
+    返回:
+        3x3 矩阵 M，使得 XYZ_B = M @ XYZ_A
+    """
+    # 1. 将 xy 转换为 XYZ (Y=1)
+    XYZ_A = xyY_to_XYZ([*xy_A, 10000])
+    XYZ_B = xyY_to_XYZ([*xy_B, 10000])
+
+    # 2. 定义 Bradford 变换矩阵 (XYZ -> LMS)
+    M_A = np.array([
+        [0.8951, 0.2664, -0.1614],
+        [-0.7502, 1.7135, 0.0367],
+        [0.0389, -0.0685, 1.0296]
+    ])
+    
+    # 3. 计算源白点和目标白点在 LMS 空间中的坐标
+    LMS_A = M_A @ XYZ_A
+    LMS_B = M_A @ XYZ_B
+
+    # 4. 计算 LMS 空间的缩放矩阵
+    # 防止除以零
+    LMS_A = np.where(LMS_A == 0, 1e-10, LMS_A)
+    M_scale = np.diag(LMS_B / LMS_A)
+
+    # 5. 组合最终矩阵: M = inv(M_A) @ M_scale @ M_A
+    M_bradford = np.linalg.inv(M_A) @ M_scale @ M_A
+
+    return M_bradford
+
+
 def calc_rgb_mapping_matrix(source_primaries, target_primaries):
     """
     计算从 source_primaries 到 target_primaries 的RGB线性映射矩阵

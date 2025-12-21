@@ -333,6 +333,21 @@ class HDRCalibrationUI:
             row=3, column=2, sticky="w", padx=(0, 0), pady=(0, 14)
         )
 
+        self.white_point_var = tk.StringVar(value="0.3127,0.3290")
+        tk.Label(
+            button_frame,
+            text=_("WhitePoint:"),
+            font=("Microsoft YaHei", 16),
+            bg="#f8f8f8",
+        ).grid(row=4, column=0, sticky="w", padx=(0, 10), pady=(0, 12))
+        white_point_entry = ttk.Entry(
+            button_frame,
+            textvariable=self.white_point_var,
+            font=("Microsoft YaHei", 16),
+            width=12,
+        )
+        white_point_entry.grid(row=4, column=0, sticky="we", padx=(120, 33), pady=(0, 12))
+
         self.preview_var = tk.BooleanVar(value=False) 
         self.preview_var.trace_add("write", lambda *a: self.on_preview_toggle())
         self.preview_checkbutton = ttk.Checkbutton(
@@ -342,7 +357,7 @@ class HDRCalibrationUI:
             style="TCheckbutton",
         )
         self.preview_checkbutton.grid(
-            row=4, column=0, sticky="w", padx=(0, 0), pady=(0, 14)
+            row=4, column=1, sticky="w", padx=(0, 0), pady=(0, 14)
         )
 
         self.icc_set_var = tk.BooleanVar(value=True) 
@@ -1237,12 +1252,16 @@ class HDRCalibrationUI:
         self.measured_xyz = []
         i = 1
         l = len(self.target_xyz)
+        
+        wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
+        m = calculate_bradford_matrix(wp, D65_WHITE_POINT)
         for itm in self.target_xyz:
             pq = XYZ_to_BT2020_PQ_rgb(itm)
             rgb = (pq * 1023).round().astype(int)
             self.proc_color_write.write_rgb(rgb, delay=0.1)
             XYZ = self.proc_color_reader.read_XYZ()
             XYZ = [float(itm) / 10000 for itm in XYZ]
+            XYZ = m@XYZ
             logging.info(_("({}) Color: {} Target XYZ:{} Measured: {}").format(i/l, rgb , itm, XYZ))
             self.measured_xyz.append(XYZ)
             i += 1
@@ -1433,13 +1452,16 @@ class HDRCalibrationUI:
         self.measured_pq["red"] = []
         self.measured_pq["green"] = []
         self.measured_pq["blue"] = []
+        wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
+        m = calculate_bradford_matrix(wp, D65_WHITE_POINT)
         num = int(self.pq_points_var.get())
         for idx, grayscale in enumerate(np.linspace(0, 1023, num, endpoint=True).round().astype(np.int32)):
             grayscale = int(grayscale)
             rgb = [grayscale, grayscale, grayscale]
             self.proc_color_write.write_rgb(rgb, delay=0.03)
             XYZ = self.proc_color_reader.read_XYZ()
-            rgb_measured = XYZ_to_BT2020_PQ_rgb(XYZ/10000)
+            XYZ_converted = m@XYZ
+            rgb_measured = XYZ_to_BT2020_PQ_rgb(XYZ_converted/10000)
             logging.info(_("({}/{}) Output RGB: {} Measured XYZ: {} RGB: {}").format(idx+1, num, rgb, XYZ, rgb_measured*1023))
             self.measured_pq["red"].append(float(rgb_measured[0]))
             self.measured_pq["green"].append(float(rgb_measured[1]))
