@@ -67,13 +67,11 @@ class ColorReader:
         while 1:
             ret = self.instance.read_nonblocking(size=1000)
             s += ret
-            if "Place instrument on" in s:
-                for itm in s.splitlines():
-                    if "Result is XYZ:" in itm:
-                        s = itm
-                        match = re.search(r"XYZ: (.+), Yxy: (.+)", s)
-                        return np.array([float(itm) for itm in match.group(1).split(" ")])
-                break
+            for itm in s.splitlines():
+                if "Result is XYZ:" in itm:
+                    match = re.search(r"XYZ: (.+), Yxy: (.+)", itm)
+                    if match:
+                        return np.array([float(v) for v in match.group(1).split(" ")])
             time.sleep(0.0001)
             if time.time() - start > timeout:
                 raise TimeoutError("read XYZ time out")
