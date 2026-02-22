@@ -65,6 +65,10 @@ msgstr "({}/{}) 写入 RGB: {} 测得 XYZ: {} RGB: {}"
 msgid "({}/{}) Output RGB: {} Measured XYZ: {} RGB: {} Luminance: {:.4f} nit"
 msgstr "({}/{}) 写入 RGB: {} 测得 XYZ: {} RGB: {} 亮度: {:.4f} nit"
 
+#: app.py:1433
+msgid "({}/{}) Output RGB: {} below threshold ({:.4f} nit), using theory PQ: {:.6f}"
+msgstr "({}/{}) 輸出 RGB: {} 低於閾值 ({:.4f} nit)，使用理論 PQ 值: {:.6f}"
+
 #: tools/icc_rw_app.py:108
 msgid "3x3 Matrix:"
 msgstr "3x3矩阵："
