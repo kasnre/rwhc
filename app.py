@@ -1463,7 +1463,7 @@ class HDRCalibrationUI:
         self.measured_pq["green"] = []
         self.measured_pq["blue"] = []
         num = int(self.pq_points_var.get())
-        ref_Y = self.measure_gamut_xyz["white_200nit"][1]
+        ref_Y = self.measure_gamut_xyz.get("white_200nit", [0, 200, 0])[1]
         Y_threshold = max(ref_Y * 0.0005, 0.1)
         target_wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
 
@@ -1478,7 +1478,6 @@ class HDRCalibrationUI:
                 XYZ_corrected = np.clip(m_point @ (XYZ / 10000), 0, None)
             else:
                 pq_theory = grayscale / 1023.0
-                rgb_measured = np.array([pq_theory, pq_theory, pq_theory])
                 logging.info(_("({}/{}) Output RGB: {} below threshold ({:.4f} nit), using theory PQ: {:.6f}").format(idx+1, num, rgb, Y_threshold, pq_theory))
                 self.measured_pq["red"].append(pq_theory)
                 self.measured_pq["green"].append(pq_theory)
