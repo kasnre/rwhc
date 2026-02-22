@@ -61,6 +61,10 @@ msgstr "({}/{}) 测量 RGB: {} 目标 XYZ:{} 实测: {}"
 msgid "({}/{}) Output RGB: {} Measured XYZ: {} RGB: {}"
 msgstr "({}/{}) 写入 RGB: {} 测得 XYZ: {} RGB: {}"
 
+#: app.py:1433
+msgid "({}/{}) Output RGB: {} Measured XYZ: {} RGB: {} Luminance: {:.4f} nit"
+msgstr "({}/{}) 写入 RGB: {} 测得 XYZ: {} RGB: {} 亮度: {:.4f} nit"
+
 #: tools/icc_rw_app.py:108
 msgid "3x3 Matrix:"
 msgstr "3x3矩阵："
