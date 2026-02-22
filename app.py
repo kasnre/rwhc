@@ -1464,21 +1464,27 @@ class HDRCalibrationUI:
         self.measured_pq["blue"] = []
         num = int(self.pq_points_var.get())
         ref_Y = self.measure_gamut_xyz["white_200nit"][1]
-        ABS_FLOOR_NIT = 0.5
+        Y_threshold = max(ref_Y * 0.0005, 0.1)
+        target_wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
 
         for idx, grayscale in enumerate(np.linspace(0, 1023, num, endpoint=True).round().astype(np.int32)):
             grayscale = int(grayscale)
             rgb = [grayscale, grayscale, grayscale]
             self.proc_color_write.write_rgb(rgb, delay=0.03)
             XYZ = np.array(self.proc_color_reader.read_XYZ(), dtype=float)
-            Y_threshold = max(ref_Y * 0.002, ABS_FLOOR_NIT)
             if XYZ[1] > Y_threshold:
                 measured_xy = XYZ_to_xy(XYZ / 10000).tolist()
-                target_wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
                 m_point     = calculate_bradford_matrix(measured_xy, target_wp)
                 XYZ_corrected = np.clip(m_point @ (XYZ / 10000), 0, None)
             else:
-                XYZ_corrected = XYZ / 10000
+                pq_theory = grayscale / 1023.0
+                rgb_measured = np.array([pq_theory, pq_theory, pq_theory])
+                logging.info(_("({}/{}) Output RGB: {} below threshold ({:.4f} nit), using theory PQ: {:.6f}").format(idx+1, num, rgb, Y_threshold, pq_theory))
+                self.measured_pq["red"].append(pq_theory)
+                self.measured_pq["green"].append(pq_theory)
+                self.measured_pq["blue"].append(pq_theory)
+                continue  # ← 直接跳過後面的 XYZ_to_BT2020_PQ_rgb
+                 
             rgb_measured = XYZ_to_BT2020_PQ_rgb(XYZ_corrected)
             logging.info(_("({}/{}) Output RGB: {} Measured XYZ: {} RGB: {} Luminance: {:.4f} nit").format(idx+1, num, rgb, XYZ, rgb_measured*1023, float(XYZ[1])))
             self.measured_pq["red"].append(float(rgb_measured[0]))
