@@ -544,6 +544,8 @@ class HDRCalibrationUI:
         mode_idx = self.mode_desc.index(self.mode_var.get())
         args.append("-x")
         args.append("-e")
+        args.append("-Q")
+        args.append("2015_10")
         print(instrument_idx, mode_idx)
         if len(self.instrument_choose) > 0:
             args.extend(["-c", self.instrument_choose[instrument_idx]])
@@ -1176,7 +1178,10 @@ class HDRCalibrationUI:
         r = l2_normalize_XYZ(self.measure_gamut_xyz["red"])
         g = l2_normalize_XYZ(self.measure_gamut_xyz["green"])
         b = l2_normalize_XYZ(self.measure_gamut_xyz["blue"])
-        w = l2_normalize_XYZ(self.measure_gamut_xyz["white_200nit"])
+        target_wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
+        max_nit = self.measure_gamut_xyz["white_200nit"][1]
+        target_white_XYZ = xyY_to_XYZ([*target_wp, max_nit])
+        w = l2_normalize_XYZ(target_white_XYZ / 10000)
         logging.info(_("Writing RGBW XYZ:\n {}\n {}\n {}\n {}").format(r, g, b, w))
         self.icc_handle.write_XYZType("rXYZ", [r])
         self.icc_handle.write_XYZType("gXYZ", [g])
@@ -1229,7 +1234,10 @@ class HDRCalibrationUI:
         r = l2_normalize_XYZ(self.measure_gamut_xyz["red"])
         g = l2_normalize_XYZ(self.measure_gamut_xyz["green"])
         b = l2_normalize_XYZ(self.measure_gamut_xyz["blue"])
-        w = l2_normalize_XYZ(self.measure_gamut_xyz["white_200nit"])
+        target_wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
+        max_nit = self.measure_gamut_xyz["white_200nit"][1]
+        target_white_XYZ = xyY_to_XYZ([*target_wp, max_nit])
+        w = l2_normalize_XYZ(target_white_XYZ / 10000)
         logging.info(_("Writing RGBW XYZ:\n {r}\n {g}\n {b}\n {w}").format(r=r, g=g, b=b, w=w))
         self.icc_handle.write_XYZType("rXYZ", [r])
         self.icc_handle.write_XYZType("gXYZ", [g])
@@ -1253,8 +1261,10 @@ class HDRCalibrationUI:
         i = 1
         l = len(self.target_xyz)
         
-        wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
-        m = calculate_bradford_matrix(wp, D65_WHITE_POINT)
+        source_white_XYZ = np.array(self.measure_gamut_xyz["white_200nit"])
+        source_xy = XYZ_to_xy(source_white_XYZ / 10000)
+        target_wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
+        m = calculate_bradford_matrix(source_xy.tolist(), target_wp)
         for itm in self.target_xyz:
             pq = XYZ_to_BT2020_PQ_rgb(itm)
             rgb = (pq * 1023).round().astype(int)
@@ -1452,17 +1462,25 @@ class HDRCalibrationUI:
         self.measured_pq["red"] = []
         self.measured_pq["green"] = []
         self.measured_pq["blue"] = []
-        wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
-        m = calculate_bradford_matrix(wp, D65_WHITE_POINT)
         num = int(self.pq_points_var.get())
+        ref_Y = self.measure_gamut_xyz["white_200nit"][1]
+        ABS_FLOOR_NIT = 0.5
+
         for idx, grayscale in enumerate(np.linspace(0, 1023, num, endpoint=True).round().astype(np.int32)):
             grayscale = int(grayscale)
             rgb = [grayscale, grayscale, grayscale]
             self.proc_color_write.write_rgb(rgb, delay=0.03)
-            XYZ = self.proc_color_reader.read_XYZ()
-            XYZ_converted = m@XYZ
-            rgb_measured = XYZ_to_BT2020_PQ_rgb(XYZ_converted/10000)
-            logging.info(_("({}/{}) Output RGB: {} Measured XYZ: {} RGB: {}").format(idx+1, num, rgb, XYZ, rgb_measured*1023))
+            XYZ = np.array(self.proc_color_reader.read_XYZ(), dtype=float)
+            Y_threshold = max(ref_Y * 0.002, ABS_FLOOR_NIT)
+            if XYZ[1] > Y_threshold:
+                measured_xy = XYZ_to_xy(XYZ / 10000).tolist()
+                target_wp = [float(x.strip()) for x in self.white_point_var.get().split(",")]
+                m_point     = calculate_bradford_matrix(measured_xy, target_wp)
+                XYZ_corrected = np.clip(m_point @ (XYZ / 10000), 0, None)
+            else:
+                XYZ_corrected = XYZ / 10000
+            rgb_measured = XYZ_to_BT2020_PQ_rgb(XYZ_corrected)
+            logging.info(_("({}/{}) Output RGB: {} Measured XYZ: {} RGB: {} Luminance: {:.4f} nit").format(idx+1, num, rgb, XYZ, rgb_measured*1023, float(XYZ[1])))
             self.measured_pq["red"].append(float(rgb_measured[0]))
             self.measured_pq["green"].append(float(rgb_measured[1]))
             self.measured_pq["blue"].append(float(rgb_measured[2]))
